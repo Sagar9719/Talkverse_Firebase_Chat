@@ -1,0 +1,76 @@
+package com.example.chat_application_firebase.viewmodel
+
+import androidx.lifecycle.ViewModel
+import com.example.model.UserModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+
+@HiltViewModel
+class ChatSharedViewModel @Inject constructor(
+    private val firebaseAuth: FirebaseAuth,
+    private val fireStore: FirebaseFirestore
+) :
+    BaseViewModel<ChatSharedViewModel.State, ChatSharedViewModel.SideEffects>() {
+    init {
+        fetchCurrentUser()
+        fetchAllUsers()
+    }
+
+    data class State(
+        val isLoading: Boolean = false,
+        val chatList: List<UserModel> = emptyList(),
+        val currentUserName: String = "",
+        val currentUserId: String = "",
+        val currentUserEmail: String = ""
+    )
+
+    sealed class SideEffects {
+        data class NetworkError(val errorMessage: String) : SideEffects()
+    }
+
+    override fun setDefaultState() = State()
+
+    fun fetchCurrentUser() {
+        val currentUser = firebaseAuth.currentUser
+        val uid = currentUser?.uid
+
+        if (uid == null) return
+
+        fireStore.collection("users").document(uid).get()
+            .addOnSuccessListener { data ->
+                if (data.exists()) {
+                    updateState {
+                        it.copy(
+                            currentUserId = data.id,
+                            currentUserName = data.getString("name") ?: "",
+                            currentUserEmail = data.getString("email") ?: ""
+                        )
+                    }
+                }
+            }
+            .addOnFailureListener {}
+    }
+
+    fun fetchAllUsers() {
+        fireStore.collection("users").get()
+            .addOnSuccessListener { result ->
+                val userList = mutableListOf<UserModel>()
+                for (document in result) {
+                    val user = document.toObject(UserModel::class.java)
+                    userList.add(user)
+                }
+
+                val filteredList = userList.filter { it.uid != state.value.currentUserId }
+
+                updateState {
+                    it.copy(chatList = filteredList)
+                }
+            }
+            .addOnFailureListener { e ->
+                val message = e.localizedMessage ?: "Fetch failed"
+                postSideEffect(sideEffect = SideEffects.NetworkError(errorMessage = message))
+            }
+    }
+}

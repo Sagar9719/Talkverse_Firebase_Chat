@@ -1,0 +1,4 @@
+package com.example.chat_application_firebase.common
+
+class Result {
+}
