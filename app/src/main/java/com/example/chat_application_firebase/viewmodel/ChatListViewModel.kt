@@ -1,6 +1,5 @@
 package com.example.chat_application_firebase.viewmodel
 
-import androidx.lifecycle.ViewModel
 import com.example.model.UserModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -8,14 +7,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class ChatSharedViewModel @Inject constructor(
+class ChatListViewModel @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
     private val fireStore: FirebaseFirestore
 ) :
-    BaseViewModel<ChatSharedViewModel.State, ChatSharedViewModel.SideEffects>() {
+    BaseViewModel<ChatListViewModel.State, ChatListViewModel.SideEffects>() {
     init {
         fetchCurrentUser()
-        fetchAllUsers()
     }
 
     data class State(
@@ -49,6 +47,7 @@ class ChatSharedViewModel @Inject constructor(
                         )
                     }
                 }
+                fetchAllUsers()
             }
             .addOnFailureListener {}
     }

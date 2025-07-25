@@ -1,5 +1,6 @@
 package com.example.chat_application_firebase.ui
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,14 +37,24 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.chat_application_firebase.extensions.ClickableExtensions.safeClickable
 import com.example.chat_application_firebase.viewmodel.LoginViewModel
-import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(loginViewModel: LoginViewModel = hiltViewModel(), onLoginSuccess: () -> Unit) {
+fun LoginScreen(
+    loginViewModel: LoginViewModel = hiltViewModel(),
+    onLoginSuccess: () -> Unit,
+    onSignUpClick: () -> Unit,
+    navigateToBasicDetailsScreen: () -> Unit
+) {
+    val state = loginViewModel.state.collectAsStateWithLifecycle()
+
     val email = remember {
         mutableStateOf(
             value = TextFieldValue(text = "", selection = TextRange(index = 0))
@@ -77,7 +90,12 @@ fun LoginScreen(loginViewModel: LoginViewModel = hiltViewModel(), onLoginSuccess
             placeholder = "Email",
             valueState = email,
             interactionSource = interactionSource,
-            keyboardType = KeyboardType.Email
+            keyboardType = KeyboardType.Email,
+            errorText = "Please enter correct email",
+            isShowError = state.value.isEmailInvalid,
+            updateInvalidState = {
+                loginViewModel.updateEmailInvalidState(value = false)
+            }
         )
 
         InputField(
@@ -86,14 +104,19 @@ fun LoginScreen(loginViewModel: LoginViewModel = hiltViewModel(), onLoginSuccess
             valueState = password,
             interactionSource = interactionSource,
             keyboardType = KeyboardType.Password,
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = PasswordVisualTransformation(),
+            errorText = "Please enter correct password",
+            isShowError = state.value.isPasswordInvalid,
+            updateInvalidState = {
+                loginViewModel.updatePasswordInvalidState(value = false)
+            }
         )
 
         Spacer(modifier = Modifier.height(height = 16.dp))
 
         Button(
             onClick = {
-                loginViewModel.loginUser(
+                loginViewModel.triggerLogin(
                     email = email.value.text,
                     password = password.value.text
                 )
@@ -109,6 +132,51 @@ fun LoginScreen(loginViewModel: LoginViewModel = hiltViewModel(), onLoginSuccess
                 )
             )
         }
+
+        Text(
+            modifier = Modifier.safeClickable(onClick = onSignUpClick),
+            text = "Haven't SignUp Yet?",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+        )
+    }
+
+    ObserveSideEffects(
+        loginViewModel = loginViewModel,
+        onLoginSuccess = onLoginSuccess,
+        navigateToBasicDetailsScreen = navigateToBasicDetailsScreen
+    )
+}
+
+@Composable
+private fun ObserveSideEffects(
+    loginViewModel: LoginViewModel,
+    onLoginSuccess: () -> Unit,
+    navigateToBasicDetailsScreen: () -> Unit
+) {
+    val context = LocalContext.current
+    LaunchedEffect(key1 = Unit) {
+        loginViewModel.sideEffect.collectLatest {
+            when (it) {
+                is LoginViewModel.SideEffects.LoginSuccess -> {
+                    Toast.makeText(context, "Login Successfully", Toast.LENGTH_SHORT).show()
+                    onLoginSuccess.invoke()
+                }
+
+                is LoginViewModel.SideEffects.NavigateToBasicDetailsScreen -> {
+                    Toast.makeText(context, "Login Successfully", Toast.LENGTH_SHORT).show()
+                    navigateToBasicDetailsScreen.invoke()
+                }
+
+                is LoginViewModel.SideEffects.Error -> {
+                    Toast.makeText(context, it.errorMessage, Toast.LENGTH_SHORT).show()
+                }
+
+                else -> Unit
+            }
+        }
     }
 }
 
@@ -120,7 +188,10 @@ private fun InputField(
     valueState: MutableState<TextFieldValue>,
     interactionSource: MutableInteractionSource,
     keyboardType: KeyboardType,
-    visualTransformation: VisualTransformation = VisualTransformation.None
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    errorText: String,
+    isShowError: Boolean = false,
+    updateInvalidState: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
@@ -137,7 +208,10 @@ private fun InputField(
 
         BasicTextField(
             value = valueState.value,
-            onValueChange = { valueState.value = it },
+            onValueChange = {
+                updateInvalidState.invoke()
+                valueState.value = it
+            },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),
             singleLine = true,
@@ -176,5 +250,25 @@ private fun InputField(
                 visualTransformation = visualTransformation
             )
         }
+
+        if (isShowError) {
+            Text(
+                text = errorText,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Red
+                ),
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp, bottom = 6.dp, top = 7.dp)
+            )
+        }
     }
+}
+
+@Composable
+@Preview
+fun LoginScreenPreview() {
+    LoginScreen(onLoginSuccess = {}, onSignUpClick = {}, navigateToBasicDetailsScreen = {})
 }
