@@ -126,6 +126,7 @@ fun AppNavHost(
                 showLogoutDialog.value = false
             },
             onConfirmLogout = {
+                showLogoutDialog.value = false
                 chatListViewModel.performLogOut(onSuccessLogout = {
                     ChatUtils.showToast(context = context, message = "Logged out successfully")
                     navController.navigate(route = Screen.Login.route) {
