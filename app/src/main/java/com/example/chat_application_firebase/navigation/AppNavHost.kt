@@ -1,16 +1,21 @@
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.chat_application_firebase.dialog.LogoutDialog
 import com.example.chat_application_firebase.screens.Screen
 import com.example.chat_application_firebase.ui.BasicDetailsScreen
 import com.example.chat_application_firebase.ui.ChatListScreen
 import com.example.chat_application_firebase.ui.ChatMessageScreen
 import com.example.chat_application_firebase.ui.LoginScreen
 import com.example.chat_application_firebase.ui.SignUpScreen
+import com.example.chat_application_firebase.utils.ChatUtils
 import com.example.chat_application_firebase.viewmodel.ChatListViewModel
 import com.example.chat_application_firebase.viewmodel.ChatMessageViewModel
 import com.example.chat_application_firebase.viewmodel.LoginViewModel
@@ -19,12 +24,13 @@ import com.example.chat_application_firebase.viewmodel.LoginViewModel
 fun AppNavHost(
     loginViewModel: LoginViewModel,
     chatListViewModel: ChatListViewModel,
-    chatMessageViewModel: ChatMessageViewModel,
     isUserLoggedIn: Boolean,
     modifier: Modifier = Modifier
 ) {
     val startDestination = if (isUserLoggedIn) Screen.ChatList.route else Screen.Login.route
     val navController = rememberNavController()
+    val showLogoutDialog = remember { mutableStateOf(value = false) }
+    val context = LocalContext.current
 
     NavHost(
         navController = navController,
@@ -55,12 +61,19 @@ fun AppNavHost(
         }
 
         composable(route = Screen.SignUp.route) {
-            SignUpScreen(loginViewModel = loginViewModel, onSignUpSuccess = {
-                navController.navigate(route = Screen.Login.route) {
-                    popUpTo(route = Screen.SignUp.route) { inclusive = true }
-                    launchSingleTop = true
-                }
-            })
+            SignUpScreen(
+                loginViewModel = loginViewModel, onSignUpSuccess = {
+                    navController.navigate(route = Screen.Login.route) {
+                        popUpTo(route = Screen.SignUp.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+                onLoginClick = {
+                    navController.navigate(route = Screen.Login.route) {
+                        popUpTo(route = Screen.SignUp.route) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                })
         }
 
         composable(route = Screen.BasicDetailsScreen.route) {
@@ -79,7 +92,7 @@ fun AppNavHost(
                     navController.navigate(route = "${Screen.ChatMessage.route}/$senderId/$receiverId/$userName")
                 },
                 onLogoutClick = {
-                    //TODO :- Log Out Click Logic
+                    showLogoutDialog.value = true
                 }
             )
         }
@@ -96,7 +109,6 @@ fun AppNavHost(
             val receiverId = it.arguments?.getString("receiverId") ?: ""
             val userName = it.arguments?.getString("userName") ?: ""
             ChatMessageScreen(
-                chatMessageViewModel = chatMessageViewModel,
                 senderId = senderId,
                 receiverId = receiverId,
                 userName = userName,
@@ -105,5 +117,23 @@ fun AppNavHost(
                 }
             )
         }
+    }
+
+    if (showLogoutDialog.value) {
+        LogoutDialog(
+            showDialog = showLogoutDialog.value,
+            onDismiss = {
+                showLogoutDialog.value = false
+            },
+            onConfirmLogout = {
+                chatListViewModel.performLogOut(onSuccessLogout = {
+                    ChatUtils.showToast(context = context, message = "Logged out successfully")
+                    navController.navigate(route = Screen.Login.route) {
+                        popUpTo(id = 0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                })
+            }
+        )
     }
 }

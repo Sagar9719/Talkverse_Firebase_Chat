@@ -1,4 +1,4 @@
-package com.example.model
+package com.example.chat_application_firebase.model
 
 data class UserModel(
     val uid: String = "",

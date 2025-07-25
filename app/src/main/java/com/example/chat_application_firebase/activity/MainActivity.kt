@@ -25,8 +25,6 @@ class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViewModel by viewModels()
     private val chatListViewModel: ChatListViewModel by viewModels()
 
-    private val chatMessageViewModel: ChatMessageViewModel by viewModels()
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -38,8 +36,7 @@ class MainActivity : ComponentActivity() {
                         loginViewModel = loginViewModel,
                         isUserLoggedIn = isLoggedIn,
                         modifier = Modifier.Companion.padding(paddingValues = innerPadding),
-                        chatListViewModel = chatListViewModel,
-                        chatMessageViewModel = chatMessageViewModel
+                        chatListViewModel = chatListViewModel
                     )
                 }
             }

@@ -4,41 +4,36 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -47,43 +42,29 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.FocusState
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat.getString
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.chat_application_firebase.R
-import com.example.chat_application_firebase.extensions.ClickableExtensions.safeClickable
-import com.example.chat_application_firebase.extensions.TimeExtension.toFormattedTime
-import com.example.chat_application_firebase.viewmodel.ChatListViewModel
+import com.example.chat_application_firebase.extensions.safeClickable
+import com.example.chat_application_firebase.extensions.toFormattedTime
+import com.example.chat_application_firebase.message.MessageStatus
 import com.example.chat_application_firebase.viewmodel.ChatMessageViewModel
 import com.google.firebase.Timestamp
-import kotlinx.coroutines.android.awaitFrame
 import kotlinx.coroutines.delay
-import kotlin.invoke
 
 internal typealias MessageSendClickCallback = (String) -> Unit
 
@@ -100,8 +81,22 @@ fun ChatMessageScreen(
     val initialMessage by remember { mutableStateOf(value = "") }
     val isKeyboardVisible by rememberKeyboardVisibilityState()
 
-    LaunchedEffect(key1 = Unit) {
+    LaunchedEffect(key1 = receiverId) {
         chatMessageViewModel.listenForMessages(senderId, receiverId)
+    }
+
+    LaunchedEffect(key1 = receiverId) {
+        val unreadMessageIds = chatMessageViewModel.messages.filter {
+            it.receiverId == senderId && it.status == MessageStatus.DELIVERED.name
+        }.map { it.id }
+
+        if (unreadMessageIds.isNotEmpty()) {
+            chatMessageViewModel.markMessagesAsDelivered(
+                senderId = senderId,
+                receiverId = receiverId,
+                messageIds = unreadMessageIds
+            )
+        }
     }
 
     Scaffold(
@@ -118,7 +113,7 @@ fun ChatMessageScreen(
             ChatMessageBottomBar(
                 initialMessage = initialMessage,
                 onSendClick = { message ->
-                    if (message.length > 50) {
+                    if (message.length > 500) {
                         Toast.makeText(context, "Character Count Limit Reached", Toast.LENGTH_SHORT)
                             .show()
                     } else {
@@ -174,7 +169,11 @@ fun ChatMessageBody(
         items(items = messages, key = { it.timestamp?.seconds ?: it.hashCode().toLong() }) { msg ->
             Box(modifier = Modifier.animateItem()) {
                 if (msg.senderId == senderId) {
-                    SentMessageBubble(message = msg.message, timestamp = msg.timestamp)
+                    SentMessageBubble(
+                        message = msg.message,
+                        timestamp = msg.timestamp,
+                        status = msg.status
+                    )
                 } else {
                     ReceivedMessageBubble(message = msg.message, timestamp = msg.timestamp)
                 }
@@ -184,56 +183,166 @@ fun ChatMessageBody(
 }
 
 @Composable
-fun SentMessageBubble(message: String, timestamp: Timestamp?) {
+fun SentMessageBubble(message: String, timestamp: Timestamp?, status: String) {
+    val statusIcon = when (status) {
+        MessageStatus.PENDING.name -> Icons.Default.AccessTime
+        MessageStatus.SENT.name -> Icons.Default.Check
+        MessageStatus.DELIVERED.name -> Icons.Default.DoneAll
+        MessageStatus.SEEN.name -> Icons.Default.DoneAll
+        else -> null
+    }
+
+    val iconTint = when (status) {
+        MessageStatus.SEEN.name -> Color(color = 0xFF00B2FF)
+        else -> Color.Gray
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(all = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.End
     ) {
-        Text(
-            text = message,
+        Box(
             modifier = Modifier
-                .background(Color(color = 0xFFDCF8C6), shape = RoundedCornerShape(size = 12.dp))
-                .padding(all = 12.dp),
-            color = Color.Black
-        )
-        timestamp?.toFormattedTime()?.let {
+                .widthIn(
+                    min = Dp.Unspecified,
+                    max = (LocalConfiguration.current.screenWidthDp.dp * 0.7f)
+                )
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(color = 0xFFB2F7EF),
+                            Color(color = 0xFF9DEFE0)
+                        )
+                    ),
+                    shape = RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 0.dp,
+                        bottomEnd = 16.dp,
+                        bottomStart = 16.dp
+                    )
+                )
+                .shadow(
+                    elevation = 2.dp,
+                    shape = RoundedCornerShape(
+                        topStart = 16.dp,
+                        topEnd = 0.dp,
+                        bottomEnd = 16.dp,
+                        bottomStart = 16.dp
+                    )
+                )
+                .padding(all = 12.dp)
+        ) {
             Text(
-                text = it,
-                fontSize = 10.sp,
-                color = Color.Gray
+                text = message,
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 20.sp
+                )
             )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            timestamp?.toFormattedTime()?.let {
+                Text(
+                    text = it,
+                    fontSize = 10.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 2.dp, end = 4.dp)
+                )
+            }
+
+            if (statusIcon != null) {
+                Spacer(modifier = Modifier.width(width = 4.dp))
+
+                Icon(
+                    imageVector = statusIcon,
+                    contentDescription = "Message status",
+                    modifier = Modifier.size(size = 14.dp),
+                    tint = iconTint
+                )
+            }
         }
     }
 }
+
 
 @Composable
 fun ReceivedMessageBubble(message: String, timestamp: Timestamp?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(all = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        Text(
-            text = message,
+        Box(
             modifier = Modifier
-                .background(Color.White, shape = RoundedCornerShape(size = 12.dp))
-                .border(width = 1.dp, Color.LightGray, shape = RoundedCornerShape(size = 12.dp))
-                .padding(all = 12.dp),
-            color = Color.Black
-        )
+                .widthIn(
+                    min = Dp.Unspecified,
+                    max = (LocalConfiguration.current.screenWidthDp.dp * 0.7f)
+                )
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(color = 0xFFF1F1F1),
+                            Color(color = 0xFFECECEC)
+                        )
+                    ),
+                    shape = RoundedCornerShape(
+                        topStart = 0.dp,
+                        topEnd = 16.dp,
+                        bottomEnd = 16.dp,
+                        bottomStart = 16.dp
+                    )
+                )
+                .shadow(
+                    elevation = 2.dp,
+                    shape = RoundedCornerShape(
+                        topStart = 0.dp,
+                        topEnd = 16.dp,
+                        bottomEnd = 16.dp,
+                        bottomStart = 16.dp
+                    ),
+                    clip = false
+                )
+                .border(
+                    width = 0.6.dp,
+                    color = Color(color = 0xFFDDDDDD),
+                    shape = RoundedCornerShape(
+                        topStart = 0.dp,
+                        topEnd = 16.dp,
+                        bottomEnd = 16.dp,
+                        bottomStart = 16.dp
+                    )
+                )
+                .padding(all = 12.dp)
+        ) {
+            Text(
+                text = message,
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 20.sp
+                )
+            )
+        }
+
         timestamp?.toFormattedTime()?.let {
             Text(
                 text = it,
                 fontSize = 10.sp,
-                color = Color.Gray
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp)
             )
         }
     }
 }
-
 
 @Composable
 fun ChatMessageTopBar(userName: String, onBackPress: () -> Unit) {

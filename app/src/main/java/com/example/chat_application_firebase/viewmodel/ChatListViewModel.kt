@@ -1,6 +1,6 @@
 package com.example.chat_application_firebase.viewmodel
 
-import com.example.model.UserModel
+import com.example.chat_application_firebase.model.UserModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,10 +12,6 @@ class ChatListViewModel @Inject constructor(
     private val fireStore: FirebaseFirestore
 ) :
     BaseViewModel<ChatListViewModel.State, ChatListViewModel.SideEffects>() {
-    init {
-        fetchCurrentUser()
-    }
-
     data class State(
         val isLoading: Boolean = false,
         val chatList: List<UserModel> = emptyList(),
@@ -71,5 +67,10 @@ class ChatListViewModel @Inject constructor(
                 val message = e.localizedMessage ?: "Fetch failed"
                 postSideEffect(sideEffect = SideEffects.NetworkError(errorMessage = message))
             }
+    }
+
+    fun performLogOut(onSuccessLogout: () -> Unit) {
+        firebaseAuth.signOut()
+        onSuccessLogout()
     }
 }

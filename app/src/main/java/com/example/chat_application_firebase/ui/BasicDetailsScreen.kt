@@ -1,12 +1,15 @@
 package com.example.chat_application_firebase.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,9 +30,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,6 +46,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.chat_application_firebase.R
+import com.example.chat_application_firebase.utils.ChatUtils
 import com.example.chat_application_firebase.viewmodel.LoginViewModel
 import kotlinx.coroutines.flow.collectLatest
 
@@ -54,53 +63,79 @@ fun BasicDetailsScreen(
         )
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color.Black)
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(space = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(Color.Black)
     ) {
-        Text(
-            text = "Enter Basic Details",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        )
-
-        InputField(
-            label = "Enter Your Name",
-            placeholder = "Name",
-            valueState = name,
-            interactionSource = interactionSource,
-            keyboardType = KeyboardType.Text,
-            errorText = "Please enter name",
-            isShowError = state.value.isNameValid,
-            updateInvalidState = {
-                loginViewModel.updateNameInvalidState(value = false)
-            }
-        )
-
-        Spacer(modifier = Modifier.height(height = 16.dp))
-
-        Button(
-            onClick = {
-                loginViewModel.saveUserDataToFireStore(
-                    name = name.value.text
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(fraction = 0.4f)
+                .clip(shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp))
+                .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                    clip = true
                 )
-            },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(size = 16.dp),
-            contentPadding = PaddingValues(vertical = 12.dp)
+                .background(Color.Black)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.blue_bg),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(space = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Next",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
+                text = "Basic Info to Get You Started",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                ),
+                textAlign = TextAlign.Center
             )
+
+            InputField(
+                label = "Enter Your Name",
+                placeholder = "Name",
+                valueState = name,
+                interactionSource = interactionSource,
+                keyboardType = KeyboardType.Text,
+                errorText = "Please enter name",
+                isShowError = state.value.isNameValid,
+                updateInvalidState = {
+                    loginViewModel.updateNameInvalidState(value = false)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(height = 16.dp))
+
+            Button(
+                onClick = {
+                    loginViewModel.saveUserDataToFireStore(
+                        name = name.value.text
+                    )
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(size = 16.dp),
+                contentPadding = PaddingValues(vertical = 12.dp)
+            ) {
+                Text(
+                    text = "Next",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
+            }
         }
     }
 
@@ -147,6 +182,9 @@ private fun InputField(
     isShowError: Boolean = false,
     updateInvalidState: () -> Unit
 ) {
+    val maxCharLimit = 50
+    val context = LocalContext.current
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
@@ -163,8 +201,15 @@ private fun InputField(
         BasicTextField(
             value = valueState.value,
             onValueChange = {
-                updateInvalidState.invoke()
-                valueState.value = it
+                if (it.text.length <= maxCharLimit) {
+                    updateInvalidState.invoke()
+                    valueState.value = it
+                } else {
+                    ChatUtils.showToast(
+                        context = context,
+                        message = "Max $maxCharLimit characters allowed"
+                    )
+                }
             },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),

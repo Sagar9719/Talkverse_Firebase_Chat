@@ -4,13 +4,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -25,7 +24,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,11 +37,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.chat_application_firebase.R
-import com.example.chat_application_firebase.extensions.ClickableExtensions.safeClickable
+import com.example.chat_application_firebase.extensions.safeClickable
 import com.example.chat_application_firebase.viewmodel.ChatListViewModel
-import com.example.model.UserModel
+import com.example.chat_application_firebase.model.UserModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +51,10 @@ fun ChatListScreen(
 ) {
     val state = chatListViewModel.state.collectAsStateWithLifecycle()
     val chats = remember(key1 = state.value.chatList) { state.value.chatList }
+
+    LaunchedEffect(key1 = Unit) {
+        chatListViewModel.fetchCurrentUser()
+    }
 
     Scaffold(
         topBar = {
@@ -73,51 +76,66 @@ fun ChatListScreen(
 
 @Composable
 fun ChatTopBar(currentUserName: String, onLogoutClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(color = 0xFF1C1C1C))
-            .padding(vertical = 18.dp, horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = "TalkVerse",
-            style = MaterialTheme.typography.titleMedium.copy(
-                color = Color(color = 0xFFEDEDED),
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp
-            )
-        )
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "User",
-                tint = Color(color = 0xFFB0B0B0),
-                modifier = Modifier.size(size = 20.dp)
-            )
-
-            Spacer(modifier = Modifier.width(width = 6.dp))
-
+    Column {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(color = 0xFF1C1C1C))
+                .padding(vertical = 18.dp, horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             Text(
-                text = currentUserName,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color(color = 0xFFEDEDED),
-                    fontWeight = FontWeight.Medium
+                text = "TalkVerse 🗨️",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.4.sp
                 )
             )
 
-            Icon(
-                modifier = Modifier
-                    .padding(start = 15.dp)
-                    .size(size = 22.dp)
-                    .safeClickable(onClick = onLogoutClick),
-                imageVector = Icons.Default.ExitToApp,
-                contentDescription = "User",
-                tint = Color(color = 0xFFB0B0B0),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(space = 10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Profile",
+                    tint =Color(color = 0xFF00C896),
+                    modifier = Modifier.size(size = 20.dp)
+                )
+
+                Text(
+                    text = currentUserName,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = Color(color = 0xFFEDEDED),
+                        fontWeight = FontWeight.Medium
+                    )
+                )
+
+                Icon(
+                    modifier = Modifier
+                        .padding(start = 6.dp)
+                        .size(size = 22.dp)
+                        .safeClickable(onClick = onLogoutClick),
+                    imageVector = Icons.Default.ExitToApp,
+                    contentDescription = "User",
+                    tint = Color(color = 0xFFEF5350)
+                )
+            }
         }
+
+        HorizontalDivider(modifier = Modifier.fillMaxWidth(), thickness = 2.dp, color = Color.Gray)
+
+        Text(
+            modifier = Modifier.padding(top = 10.dp, start = 12.dp),
+            text = "ChatSpace",
+            style = MaterialTheme.typography.headlineSmall.copy(
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.4.sp
+            )
+        )
     }
 }
 
@@ -137,7 +155,7 @@ fun ChatList(
 ) {
     LazyColumn(
         modifier = modifier
-            .padding(vertical = 20.dp, horizontal = 10.dp)
+            .padding(vertical = 20.dp, horizontal = 12.dp)
             .background(Color(color = 0xFF121212))
     ) {
         itemsIndexed(items = chatList) { index, userData ->
@@ -172,13 +190,13 @@ fun ChatListItem(
         modifier = Modifier
             .safeClickable(onClick = { onClick.invoke(senderId, receiverId, name) })
             .fillMaxWidth()
-            .background(Color(color = 0xFF424242), shape = RoundedCornerShape(size = 16.dp))
+            .background(Color(color = 0xFF2C2C2C), shape = RoundedCornerShape(size = 16.dp))
             .border(
                 width = 1.dp,
                 Color(color = 0xFF3A3838),
                 shape = RoundedCornerShape(size = 16.dp)
             )
-            .padding(vertical = 10.dp, horizontal = 12.dp),
+            .padding(all = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
@@ -193,9 +211,9 @@ fun ChatListItem(
         Text(
             modifier = Modifier.padding(start = 10.dp),
             text = name,
-            style = MaterialTheme.typography.bodyMedium.copy(
+            style = MaterialTheme.typography.bodyLarge.copy(
                 color = Color(color = 0xFFEDEDED),
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Medium
             )
         )
     }

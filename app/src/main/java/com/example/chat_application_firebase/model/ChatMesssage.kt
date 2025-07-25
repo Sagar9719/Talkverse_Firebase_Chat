@@ -1,4 +1,4 @@
-package com.example.model
+package com.example.chat_application_firebase.model
 
 import com.example.chat_application_firebase.message.MessageStatus
 import com.google.firebase.Timestamp

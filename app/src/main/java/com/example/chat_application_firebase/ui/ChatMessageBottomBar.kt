@@ -202,7 +202,7 @@ fun SendChatMessageContent(
                     modifier = Modifier
                         .align(alignment = Alignment.Bottom)
                         .background(
-                            color = Color.Blue,
+                            color = Color(color = 0xFFB2F7EF),
                             shape = CircleShape,
                         )
                         .size(size = 45.dp)
