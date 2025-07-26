@@ -3,6 +3,13 @@
 
 TalkVerse is a modern, real-time chat application built entirely with Kotlin for Android, powered by Firebase and Jetpack Compose. The app supports real-time messaging and real-time authentication, giving users a smooth and secure chatting experience.
 
+## 📸 Screenshots
+<img width="1080" height="2400" alt="1000001394" src="https://github.com/user-attachments/assets/f47adf72-1c51-4ca8-b917-a71ab1722b7e" />
+<img width="1080" height="2400" alt="1000001395" src="https://github.com/user-attachments/assets/fb52e9e4-6637-4871-b7ea-715a8ab7b5ec" />
+<img width="1080" height="2400" alt="1000001396" src="https://github.com/user-attachments/assets/d7b46188-3385-4c0c-91f6-056a60696a1e" />
+<img width="1080" height="2400" alt="1000001390" src="https://github.com/user-attachments/assets/f98a5e32-3e8d-461e-9981-869cc0ba4126" />
+<img width="1080" height="2400" alt="1000001393" src="https://github.com/user-attachments/assets/d3dbcb48-e81b-430f-b286-d81518170d44" />
+<img width="1080" height="2400" alt="1000001391" src="https://github.com/user-attachments/assets/85d5bdaf-9f22-49ad-986a-903fd15e4192" />
 
 ## Tech Stack
 
@@ -84,4 +91,4 @@ TalkVerse is a modern, real-time chat application built entirely with Kotlin for
 
 **5 Sync Gradle & Run the app:**
 
-🔗 Need help setting up Firebase? Check out the official Firebase setup guide for Android (https://firebase.google.com/docs/android/setup)
+🔗 Need help setting up Firebase? Check out the official Firebase setup guide for Android (https://firebase.google.com/docs/android/setup.
