@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,10 +32,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -173,21 +179,37 @@ fun SignUpScreen(
                 shape = RoundedCornerShape(size = 16.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
-                Text(
-                    text = "Sign Up",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold
+                if (state.value.isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        strokeWidth = 3.dp,
+                        modifier = Modifier.size(size = 30.dp)
                     )
-                )
+                } else {
+                    Text(
+                        text = "Sign Up",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
             }
 
             Text(
+                text = buildAnnotatedString {
+                    append("Get Started with TalkVerse, ")
+                    withStyle(
+                        style = SpanStyle(
+                            textDecoration = TextDecoration.Underline,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(color = 0xFF4493DE)
+                        )
+                    ) {
+                        append("Login")
+                    }
+                },
                 modifier = Modifier.safeClickable(onClick = onLoginClick),
-                text = "Get Started with TalkVerse",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                style = MaterialTheme.typography.labelLarge
             )
         }
     }

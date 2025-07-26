@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -69,7 +71,8 @@ fun ChatListScreen(
                 .fillMaxSize(),
             chatList = chats,
             onClick = onClick,
-            senderId = state.value.currentUserId
+            senderId = state.value.currentUserId,
+            isLoading = state.value.isLoading
         )
     }
 }
@@ -101,7 +104,7 @@ fun ChatTopBar(currentUserName: String, onLogoutClick: () -> Unit) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile",
-                    tint =Color(color = 0xFF00C896),
+                    tint = Color(color = 0xFF00C896),
                     modifier = Modifier.size(size = 20.dp)
                 )
 
@@ -148,6 +151,7 @@ fun ChatTopBarPreview() {
 
 @Composable
 fun ChatList(
+    isLoading: Boolean,
     modifier: Modifier,
     chatList: List<UserModel>,
     senderId: String,
@@ -158,22 +162,36 @@ fun ChatList(
             .padding(vertical = 20.dp, horizontal = 12.dp)
             .background(Color(color = 0xFF121212))
     ) {
-        itemsIndexed(items = chatList) { index, userData ->
-            ChatListItem(
-                name = userData.name,
-                senderId = senderId,
-                receiverId = userData.uid,
-                onClick = onClick
-            )
-
-            if (index != chatList.lastIndex) {
-                HorizontalDivider(
-                    modifier = Modifier
-                        .padding(vertical = 14.dp)
-                        .fillMaxWidth(),
-                    thickness = 1.dp,
-                    color = Color(color = 0xFF4D4C4C)
+        if (isLoading) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center).size(size = 70.dp),
+                        color = Color.White,
+                        strokeWidth = 3.dp,
+                    )
+                }
+            }
+        } else {
+            itemsIndexed(items = chatList) { index, userData ->
+                ChatListItem(
+                    name = userData.name,
+                    senderId = senderId,
+                    receiverId = userData.uid,
+                    onClick = onClick
                 )
+
+                if (index != chatList.lastIndex) {
+                    HorizontalDivider(
+                        modifier = Modifier
+                            .padding(vertical = 14.dp)
+                            .fillMaxWidth(),
+                        thickness = 1.dp,
+                        color = Color(color = 0xFF4D4C4C)
+                    )
+                }
             }
         }
     }

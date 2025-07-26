@@ -26,7 +26,13 @@ class ChatListViewModel @Inject constructor(
 
     override fun setDefaultState() = State()
 
+    fun updateLoadingState(value: Boolean) {
+        updateState {
+            it.copy(isLoading = value)
+        }
+    }
     fun fetchCurrentUser() {
+        updateLoadingState(value = true)
         val currentUser = firebaseAuth.currentUser
         val uid = currentUser?.uid
 
@@ -45,7 +51,12 @@ class ChatListViewModel @Inject constructor(
                 }
                 fetchAllUsers()
             }
-            .addOnFailureListener {}
+            .addOnFailureListener { e ->
+                updateLoadingState(value = false)
+                val message = e.localizedMessage ?: "Fetch failed"
+                postSideEffect(sideEffect = SideEffects.NetworkError(errorMessage = message))
+                e.printStackTrace()
+            }
     }
 
     fun fetchAllUsers() {
@@ -59,13 +70,16 @@ class ChatListViewModel @Inject constructor(
 
                 val filteredList = userList.filter { it.uid != state.value.currentUserId }
 
+                updateLoadingState(value = false)
                 updateState {
                     it.copy(chatList = filteredList)
                 }
             }
             .addOnFailureListener { e ->
+                updateLoadingState(value = false)
                 val message = e.localizedMessage ?: "Fetch failed"
                 postSideEffect(sideEffect = SideEffects.NetworkError(errorMessage = message))
+                e.printStackTrace()
             }
     }
 

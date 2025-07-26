@@ -131,6 +131,7 @@ class LoginViewModel @Inject constructor(
     }
 
     fun saveUserDataToFireStore(name: String) {
+        updateLoadingState(value = true)
         val user = auth.currentUser
         val uid = user?.uid ?: return
         if (name.isEmpty()) {
@@ -146,9 +147,11 @@ class LoginViewModel @Inject constructor(
 
         fireStore.collection("users").document(uid).set(userDetails)
             .addOnSuccessListener {
+                updateLoadingState(value = false)
                 postSideEffect(sideEffect = SideEffects.NameUpdatedSuccess)
             }
             .addOnFailureListener {
+                updateLoadingState(value = false)
                 val message = it.localizedMessage ?: "User name updation failed"
                 postSideEffect(sideEffect = SideEffects.Error(errorMessage = message))
             }
